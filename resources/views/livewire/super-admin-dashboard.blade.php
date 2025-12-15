@@ -1,9 +1,4 @@
 <div>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Super Admin Dashboard') }}
-        </h2>
-    </x-slot>
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -322,11 +317,23 @@
         </div>
     </div>
 
-    <!-- Include jsQR for Admin QR code scanning -->
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        // Include jsQR for Admin QR code scanning by loading it dynamically
+        if (typeof jsQR === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+            document.head.appendChild(script);
+
+            // Wait for the script to load before running the main code
+            script.onload = function() {
+                initializeAdminScanner();
+            };
+        } else {
+            // jsQR is already loaded
+            initializeAdminScanner();
+        }
+
+        function initializeAdminScanner() {
             // Admin QR Scanner Elements
             const startAdminScannerBtn = document.getElementById('startAdminScannerBtn');
             const adminUploadQRBtn = document.getElementById('adminUploadQRBtn');
@@ -738,19 +745,16 @@
                             '</div>';
                     });
                 }
-            }
-        });
-    </script>
+            });
 
-    <script>
-        // Add the toggleClassStudents function for our new feature
-        function toggleClassStudents(classId) {
-            const studentsList = document.getElementById('students-list-' + classId);
-            if (studentsList.classList.contains('hidden')) {
-                studentsList.classList.remove('hidden');
-            } else {
-                studentsList.classList.add('hidden');
+            // Add the toggleClassStudents function for our new feature
+            function toggleClassStudents(classId) {
+                const studentsList = document.getElementById('students-list-' + classId);
+                if (studentsList.classList.contains('hidden')) {
+                    studentsList.classList.remove('hidden');
+                } else {
+                    studentsList.classList.add('hidden');
+                }
             }
-        }
-    </script>
-</div>
+        </script>
+    </div>
