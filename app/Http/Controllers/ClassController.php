@@ -21,9 +21,9 @@ class ClassController extends Controller
 
         $classes = collect();
         if ($user->role === 'admin') {
-            $classes = ClassModel::where('teacher_id', $user->id)->get();
+            $classes = ClassModel::with('teacher', 'users')->where('teacher_id', $user->id)->get();
         } elseif ($user->role === 'superadmin') {
-            $classes = ClassModel::all();
+            $classes = ClassModel::with('teacher', 'users')->get();
         }
 
         return view('classes.index', compact('classes'));
@@ -150,6 +150,29 @@ class ClassController extends Controller
         $class->delete();
 
         return redirect()->route('classes.index')->with('success', 'Class deleted successfully.');
+    }
+
+    /**
+     * Show class members for a specific class
+     */
+    public function showMembers(ClassModel $class)
+    {
+        $user = Auth::user();
+
+        if (!$user || !in_array($user->role, ['admin', 'superadmin'])) {
+            abort(403, 'Unauthorized access');
+        }
+
+        // Check if user has access to this class
+        if ($user->role === 'admin' && $class->teacher_id !== $user->id) {
+            abort(403, 'Unauthorized access to this class');
+        }
+
+        $students = \App\Models\User::where('class_id', $class->id)
+                        ->where('role', 'user')
+                        ->get();
+
+        return view('classes.members', compact('class', 'students'));
     }
 
     /**

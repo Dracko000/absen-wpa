@@ -237,4 +237,66 @@ class ReportController extends Controller
             'attendances' => $attendances
         ]);
     }
+
+    /**
+     * Import attendance data from Excel file
+     */
+    public function importExcel(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user || !in_array($user->role, ['admin', 'superadmin'])) {
+            abort(403, 'Unauthorized access');
+        }
+
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv',
+            'class_id' => 'required|exists:class_models,id',
+        ]);
+
+        $class = ClassModel::findOrFail($request->class_id);
+
+        // Verify admin has access to this class
+        if ($user->role === 'admin' && $class->teacher_id !== $user->id) {
+            abort(403, 'Unauthorized access to this class');
+        }
+
+        try {
+            $file = $request->file('file');
+            $import = new \App\Imports\AttendanceImport($request->class_id);
+            \Maatwebsite\Excel\Facades\Excel::import($import, $file);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Attendance data imported successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error importing attendance data: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Show import form
+     */
+    public function showImportForm()
+    {
+        $user = Auth::user();
+
+        if (!$user || !in_array($user->role, ['admin', 'superadmin'])) {
+            abort(403, 'Unauthorized access');
+        }
+
+        // Get classes based on user role
+        $classes = collect();
+        if ($user->role === 'admin') {
+            $classes = ClassModel::where('teacher_id', $user->id)->get();
+        } elseif ($user->role === 'superadmin') {
+            $classes = ClassModel::all();
+        }
+
+        return view('reports.import', compact('classes'));
+    }
 }

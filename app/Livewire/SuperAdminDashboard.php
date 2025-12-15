@@ -36,8 +36,17 @@ class SuperAdminDashboard extends Component
 
     public function render()
     {
-        // Get recent attendance records
+        // Get recent attendance records for all users
         $recentAttendances = Attendance::with(['user', 'schedule.classModel', 'schedule.subject'])
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Get recent admin attendance records (attendance records for admin/superadmin users)
+        $recentAdminAttendances = Attendance::with(['user', 'schedule.classModel', 'schedule.subject'])
+            ->whereHas('user', function($query) {
+                $query->whereIn('role', ['admin', 'superadmin']);
+            })
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
@@ -45,9 +54,17 @@ class SuperAdminDashboard extends Component
         // Get all classes with teacher info
         $classes = ClassModel::with('teacher')->get();
 
+        // Get class members (students) for each class
+        $classMembers = [];
+        foreach ($classes as $class) {
+            $classMembers[$class->id] = User::where('class_id', $class->id)->where('role', 'user')->get();
+        }
+
         return view('livewire.super-admin-dashboard', [
             'recentAttendances' => $recentAttendances,
-            'classes' => $classes
+            'recentAdminAttendances' => $recentAdminAttendances,
+            'classes' => $classes,
+            'classMembers' => $classMembers
         ]);
     }
 }

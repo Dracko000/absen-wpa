@@ -57,6 +57,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
 
     // Class routes
     Route::resource('classes', ClassController::class)->middleware('role_or:admin,superadmin');
+    Route::get('/classes/{class}/members', [ClassController::class, 'showMembers'])->name('classes.members')->middleware('role_or:admin,superadmin');
 
     // Schedule routes
     Route::resource('schedules', ScheduleController::class)->middleware('role_or:admin,superadmin');
@@ -72,11 +73,21 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
     Route::post('/reports/export/weekly-excel', [ReportController::class, 'exportWeeklyExcel'])->name('reports.export.weekly-excel')->middleware('role_or:admin,superadmin');
     Route::post('/reports/export/monthly-excel', [ReportController::class, 'exportMonthlyExcel'])->name('reports.export.monthly-excel')->middleware('role_or:admin,superadmin');
 
+    // Import routes
+    Route::get('/reports/import', [ReportController::class, 'showImportForm'])->name('reports.import')->middleware('role_or:admin,superadmin');
+    Route::post('/reports/import-excel', [ReportController::class, 'importExcel'])->middleware('role_or:admin,superadmin');
+
     // Attendance history route for regular users
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.history')->middleware('auth');
 
     // Attendance index route for admins (list all attendance records)
     Route::get('/attendance/index', [AttendanceController::class, 'adminIndex'])->name('attendance.index')->middleware('role_or:admin,superadmin');
+
+    // Superadmin-only routes for managing attendance
+    Route::put('/attendance/{id}/status', [AttendanceController::class, 'updateStatus'])->middleware('role:super_admin');
+    Route::delete('/attendance/{id}', [AttendanceController::class, 'destroy'])->middleware('role:super_admin');
+    Route::get('/cache-management', [AttendanceController::class, 'showCacheManagement'])->middleware('role:super_admin');
+    Route::post('/clear-cache', [AttendanceController::class, 'clearCache'])->middleware('role:super_admin');
 
     // Dashboard routes based on user role
     Route::get('/dashboard', function () {

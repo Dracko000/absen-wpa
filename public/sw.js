@@ -1,4 +1,4 @@
-const CACHE_NAME = 'attendance-app-v1';
+const CACHE_NAME = 'sdn-cikampek-selatan-1-v1';
 const urlsToCache = [
   '/',
   '/css/app.css',

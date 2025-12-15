@@ -1,7 +1,7 @@
 {
-    "name": "Attendance System",
-    "short_name": "Attendance",
-    "description": "Student and Teacher Attendance System",
+    "name": "SDN Cikampek Selatan 1",
+    "short_name": "SDN Cikampek",
+    "description": "Sistem Absensi SDN Cikampek Selatan 1",
     "theme_color": "#3b82f6",
     "background_color": "#ffffff",
     "display": "standalone",

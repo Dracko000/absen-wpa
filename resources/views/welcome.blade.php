@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Attendance System') }}</title>
+        <title>{{ config('app.name', 'SDN Cikampek Selatan 1') }}</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -35,7 +35,7 @@
                             </div>
                         </div>
 
-                        <h1 class="mt-6 text-2xl font-bold text-gray-900 dark:text-white">Attendance System</h1>
+                        <h1 class="mt-6 text-2xl font-bold text-gray-900 dark:text-white">SDN Cikampek Selatan 1</h1>
                         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Silakan masuk ke akun Anda</p>
                     </div>
 

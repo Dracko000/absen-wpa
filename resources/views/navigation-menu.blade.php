@@ -34,6 +34,12 @@
                                 <x-nav-link href="{{ route('reports') }}" :active="request()->routeIs('reports')">
                                     {{ __('Reports') }}
                                 </x-nav-link>
+                                <x-nav-link href="{{ route('reports.import') }}" :active="request()->routeIs('reports.import')">
+                                    {{ __('Import') }}
+                                </x-nav-link>
+                                <x-nav-link href="{{ route('cache-management') }}" :active="request()->routeIs('cache-management')">
+                                    {{ __('Cache') }}
+                                </x-nav-link>
                             @elseif(auth()->user()->isAdmin())
                                 <x-nav-link href="{{ route('classes.index') }}" :active="request()->routeIs('classes.index')">
                                     {{ __('Classes') }}
@@ -43,6 +49,9 @@
                                 </x-nav-link>
                                 <x-nav-link href="{{ route('attendance.index') }}" :active="request()->routeIs('attendance.index')">
                                     {{ __('Attendance') }}
+                                </x-nav-link>
+                                <x-nav-link href="{{ route('reports.import') }}" :active="request()->routeIs('reports.import')">
+                                    {{ __('Import') }}
                                 </x-nav-link>
                             @else
                                 <x-nav-link href="{{ route('attendance.history') }}" :active="request()->routeIs('attendance.history')">
@@ -212,6 +221,12 @@
                     <x-responsive-nav-link href="{{ route('reports') }}" :active="request()->routeIs('reports')">
                         {{ __('Reports') }}
                     </x-responsive-nav-link>
+                    <x-responsive-nav-link href="{{ route('reports.import') }}" :active="request()->routeIs('reports.import')">
+                        {{ __('Import') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link href="{{ route('cache-management') }}" :active="request()->routeIs('cache-management')">
+                        {{ __('Cache') }}
+                    </x-responsive-nav-link>
                 @elseif(auth()->user()->isAdmin())
                     <x-responsive-nav-link href="{{ route('classes.index') }}" :active="request()->routeIs('classes.index')">
                         {{ __('Classes') }}
@@ -221,6 +236,9 @@
                     </x-responsive-nav-link>
                     <x-responsive-nav-link href="{{ route('attendance.index') }}" :active="request()->routeIs('attendance.index')">
                         {{ __('Attendance') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link href="{{ route('reports.import') }}" :active="request()->routeIs('reports.import')">
+                        {{ __('Import') }}
                     </x-responsive-nav-link>
                 @else
                     <x-responsive-nav-link href="{{ route('attendance.history') }}" :active="request()->routeIs('attendance.history')">

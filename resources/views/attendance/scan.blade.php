@@ -144,6 +144,55 @@
     <!-- Include jsQR for QR code scanning -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 
+    <style>
+        /* Custom toast notification styles */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            min-width: 300px;
+            transform: translateX(400px);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background-color: #10b981;
+        }
+
+        .toast.error {
+            background-color: #ef4444;
+        }
+
+        .toast.info {
+            background-color: #3b82f6;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            margin-left: 12px;
+        }
+    </style>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const classSelect = document.getElementById('classSelect');
@@ -467,6 +516,8 @@
                         resultDiv.innerHTML += '<p class="text-green-600">' + data.message + '</p>';
                         if (data.student) {
                             resultDiv.innerHTML += '<p class="text-blue-600">Student: ' + data.student.name + ' (' + data.student.email + ')</p>';
+                        } else if (data.admin) {
+                            resultDiv.innerHTML += '<p class="text-blue-600">Admin: ' + data.admin.name + ' (' + data.admin.email + ')</p>';
                         }
                         // Refresh attendance list
                         fetchAttendance();
@@ -475,18 +526,24 @@
                         resultDiv.innerHTML += '<p class="text-green-600">' + data.message + '</p>';
                         if (data.student) {
                             resultDiv.innerHTML += '<p class="text-blue-600">Student: ' + data.student.name + ' (' + data.student.email + ') - Current Status: ' + data.current_status + '</p>';
+                        } else if (data.admin) {
+                            resultDiv.innerHTML += '<p class="text-blue-600">Admin: ' + data.admin.name + ' (' + data.admin.email + ') - Current Status: ' + data.current_status + '</p>';
                         }
 
+                        // Determine if this is a student or admin for the modal
+                        const isStudent = !!data.student;
+                        const userData = isStudent ? data.student : data.admin;
+
                         document.getElementById('studentInfo').innerHTML =
-                            '<p class="font-medium">Student: <strong>' + data.student.name + '</strong></p>' +
-                            '<p>Email: ' + data.student.email + '</p>' +
-                            '<p>Class: ' + data.student.class + '</p>' +
+                            '<p class="font-medium">' + (isStudent ? 'Student' : 'Admin') + ': <strong>' + userData.name + '</strong></p>' +
+                            '<p>Email: ' + userData.email + '</p>' +
+                            '<p>Class: ' + (userData.class || 'N/A') + '</p>' +
                             '<p>Current Status: <span id="currentStatus" class="font-bold">' + data.current_status.toUpperCase() + '</span></p>';
 
                         // Store the QR data and date for later use
                         window.currentQRData = qrData;
                         window.currentDate = dateInput.value;
-                        window.currentStudentId = data.student.id;
+                        window.currentStudentId = userData.id; // This should work for both student and admin
 
                         // Show the status modal
                         document.getElementById('statusModal').style.display = 'block';
@@ -683,6 +740,150 @@
                 if (event.target === modal) {
                     modal.style.display = 'none';
                 }
+            }
+
+            // Create and show toast notification
+            function showToast(message, type = 'success') {
+                // Remove any existing toasts
+                const existingToast = document.querySelector('.toast');
+                if (existingToast) {
+                    existingToast.remove();
+                }
+
+                // Create toast element
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.innerHTML = `
+                    <div class="toast-content">${message}</div>
+                    <button class="toast-close">&times;</button>
+                `;
+
+                document.body.appendChild(toast);
+
+                // Show toast
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 100);
+
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toast.parentNode.removeChild(toast);
+                        }
+                    }, 300);
+                }, 5000);
+
+                // Add close event
+                toast.querySelector('.toast-close').addEventListener('click', () => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toast.parentNode.removeChild(toast);
+                        }
+                    }, 300);
+                });
+            }
+
+            // Enhanced processScan function with notifications
+            function processScan(qrData) {
+                // Only proceed if qrData is not empty
+                if (!qrData || qrData.trim() === '') {
+                    resultDiv.innerHTML = '<p class="text-red-600">Error: No QR code data detected. Please make sure the QR code is properly positioned.</p>';
+                    resultContainer.style.display = 'block';
+                    showToast('No QR code data detected. Please try again.', 'error');
+                    return;
+                }
+
+                // Try to parse the QR data as JSON to verify it's in the expected format
+                try {
+                    const parsedData = JSON.parse(qrData);
+                    console.log('Parsed QR data:', parsedData); // Debug log
+                } catch (e) {
+                    resultDiv.innerHTML = '<p class="text-red-600">Error: Invalid QR code format. Please use a valid student QR code from the system.</p>';
+                    resultContainer.style.display = 'block';
+                    console.error('QR data parsing error:', e);
+                    showToast('Invalid QR code format. Please try again.', 'error');
+                    return;
+                }
+
+                // Show validation indicator
+                resultDiv.innerHTML = '<p class="text-blue-600">Validating QR code data...</p>';
+
+                fetch('/attendance/process-scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        qr_data: qrData,
+                        date: dateInput.value
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        resultDiv.innerHTML += '<p class="text-green-600">' + data.message + '</p>';
+                        if (data.student) {
+                            resultDiv.innerHTML += '<p class="text-blue-600">Student: ' + data.student.name + ' (' + data.student.email + ')</p>';
+                        } else if (data.admin) {
+                            resultDiv.innerHTML += '<p class="text-blue-600">Admin: ' + data.admin.name + ' (' + data.admin.email + ')</p>';
+                        }
+
+                        // Show success notification
+                        const studentName = data.student ? data.student.name : (data.admin ? data.admin.name : 'Unknown');
+                        showToast(`Attendance recorded successfully for ${studentName}!`, 'success');
+
+                        // Refresh attendance list
+                        fetchAttendance();
+                    } else if (data.show_status_modal) {
+                        // Show the status selection modal to allow changing status
+                        resultDiv.innerHTML += '<p class="text-green-600">' + data.message + '</p>';
+                        if (data.student) {
+                            resultDiv.innerHTML += '<p class="text-blue-600">Student: ' + data.student.name + ' (' + data.student.email + ') - Current Status: ' + data.current_status + '</p>';
+                        } else if (data.admin) {
+                            resultDiv.innerHTML += '<p class="text-blue-600">Admin: ' + data.admin.name + ' (' + data.admin.email + ') - Current Status: ' + data.current_status + '</p>';
+                        }
+
+                        // Determine if this is a student or admin for the modal
+                        const isStudent = !!data.student;
+                        const userData = isStudent ? data.student : data.admin;
+
+                        document.getElementById('studentInfo').innerHTML =
+                            '<p class="font-medium">' + (isStudent ? 'Student' : 'Admin') + ': <strong>' + userData.name + '</strong></p>' +
+                            '<p>Email: ' + userData.email + '</p>' +
+                            '<p>Class: ' + (userData.class || 'N/A') + '</p>' +
+                            '<p>Current Status: <span id="currentStatus" class="font-bold">' + data.current_status.toUpperCase() + '</span></p>';
+
+                        // Store the QR data and date for later use
+                        window.currentQRData = qrData;
+                        window.currentDate = dateInput.value;
+                        window.currentStudentId = userData.id; // This should work for both student and admin
+
+                        // Show the status modal
+                        document.getElementById('statusModal').style.display = 'block';
+
+                        // Show notification that status selection is required
+                        showToast(`QR scanned for ${userData.name}. Please select attendance status.`, 'info');
+
+                        // Refresh attendance list
+                        fetchAttendance();
+                    } else {
+                        resultDiv.innerHTML += '<p class="text-red-600">Error: ' + data.message + '</p>';
+                        if (data.message.includes('Invalid QR code')) {
+                            resultDiv.innerHTML += '<p class="text-sm text-gray-600 mt-2">Make sure you are scanning a valid student QR code generated from the system.</p>';
+                        }
+
+                        showToast(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    resultDiv.innerHTML += '<p class="text-red-600">Error: ' + error.message + '</p>';
+                    console.error('Scan error:', error);
+                    showToast('Connection error. Please try again.', 'error');
+                });
             }
         });
     </script>

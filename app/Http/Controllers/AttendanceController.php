@@ -76,101 +76,184 @@ class AttendanceController extends Controller
 
             $decodedData = $this->qrCodeService->decodeQRData($qr_data);
 
-            if (in_array($decodedData['type'], ['user', 'student', 'User', 'Student'])) {
-                // Processing student/user QR code
-                $student = User::with('class')->findOrFail($decodedData['id']);
+            // Check if QR code is for a user (student), admin, or superadmin
+            if (in_array(strtolower($decodedData['type']), ['user', 'student', 'admin', 'superadmin'])) {
+                // Processing user/admin QR code
+                $user = User::with('class')->findOrFail($decodedData['id']);
 
                 // Additional validation: make sure the QR code ID matches the user found
-                if ($student->id != $decodedData['id']) {
+                if ($user->id != $decodedData['id']) {
                     return response()->json([
                         'success' => false,
                         'message' => 'QR code user ID does not match system user'
                     ]);
                 }
 
-                // Use the class from the QR code data (or fallback to user's class in DB)
-                $classId = $decodedData['class_id'] ?? $student->class_id;
-
-                if (!$classId) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Student does not have an assigned class. Please assign a class to the student first.'
-                    ]);
-                }
-
-                // Check if this is for a specific class/schedule
-                $schedule = Schedule::where('class_model_id', $classId)
-                    ->where('date', $request->date)
-                    ->first();
-
-                // If no schedule exists, provide an option to create attendance anyway
-                // This makes the system more flexible for impromptu attendance taking
-                if (!$schedule) {
-                    // To handle the foreign key constraint, we need to ensure there's at least one subject
+                // Handle different user types
+                if (in_array($user->role, ['admin', 'superadmin'])) {
+                    // For admin/superadmin, we create attendance record without requiring class
+                    // We'll use a default class if admin doesn't have one assigned
+                    $firstClass = \App\Models\ClassModel::first();
                     $firstSubject = \App\Models\Subject::first();
 
-                    if (!$firstSubject) {
-                        // If no subjects exist, we need to handle this case differently
-                        // For now, we'll return an appropriate error message to guide the user
+                    if (!$firstClass) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'No subjects found in the system. Please create at least one subject in the system before scanning attendance.',
-                            'suggested_action' => 'Add a new subject in the system settings first.'
+                            'message' => 'No classes found in the system. Please create at least one class first.'
                         ]);
                     }
 
-                    $schedule = Schedule::create([
+                    if (!$firstSubject) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'No subjects found in the system. Please create at least one subject first.'
+                        ]);
+                    }
+
+                    $classId = $user->class_id ?: $firstClass->id; // Use assigned class or first available class
+                    $subjectId = $firstSubject->id; // Use first available subject
+
+                    // Check if this is for a specific date
+                    $date = $request->date ?: now()->toDateString(); // Use provided date or current date
+
+                    // Create a general schedule for admin attendance if it doesn't exist
+                    $schedule = Schedule::firstOrCreate([
                         'class_model_id' => $classId,
-                        'subject_id' => $firstSubject->id, // Use first subject
-                        'date' => $request->date,
-                        'start_time' => Carbon::parse($request->date . ' 08:00'), // Default to 8 AM
-                        'end_time' => Carbon::parse($request->date . ' 17:00'),   // Default to 5 PM
+                        'subject_id' => $subjectId,
+                        'date' => $date,
+                        'start_time' => Carbon::parse($date . ' 00:00:00'),
+                        'end_time' => Carbon::parse($date . ' 23:59:59'),
+                    ], [
                         'status' => 'active'
                     ]);
-                }
 
-                // Check if attendance already exists
-                $existingAttendance = Attendance::where('user_id', $student->id)
-                    ->where('schedule_id', $schedule->id)
-                    ->first();
+                    // Check if attendance already exists for this admin/superadmin on this date
+                    $existingAttendance = Attendance::where('user_id', $user->id)
+                        ->where('schedule_id', $schedule->id)
+                        ->first();
 
-                if ($existingAttendance) {
+                    if ($existingAttendance) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Attendance already recorded for this admin in this session'
+                        ]);
+                    }
+
+                    // For admin/superadmin, default status would be present
+                    $defaultStatus = 'present';
+
+                    // Create attendance record for admin/superadmin
+                    $attendance = Attendance::create([
+                        'user_id' => $user->id,
+                        'schedule_id' => $schedule->id,
+                        'check_in_time' => now(),
+                        'status' => $defaultStatus
+                    ]);
+
+                    // Load relationships for the response to ensure all data is available
+                    $attendance->load(['user', 'schedule.classModel', 'schedule.subject']);
+
                     return response()->json([
-                        'success' => false,
-                        'message' => 'Attendance already recorded for this student in this session'
+                        'success' => true,
+                        'message' => 'Admin attendance recorded successfully',
+                        'attendance' => $attendance,
+                        'admin' => [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'email' => $user->email,
+                            'role' => $user->role,
+                            'class' => $user->class?->name
+                        ],
+                        'requires_status_selection' => false, // No status change needed for admin verification
+                        'current_status' => $defaultStatus,
+                        'show_status_modal' => false
+                    ]);
+
+                } else {
+                    // Processing student/user QR code
+                    // Use the class from the QR code data (or fallback to user's class in DB)
+                    $classId = $decodedData['class_id'] ?? $user->class_id;
+
+                    if (!$classId) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Student does not have an assigned class. Please assign a class to the student first.'
+                        ]);
+                    }
+
+                    // Check if this is for a specific class/schedule
+                    $schedule = Schedule::where('class_model_id', $classId)
+                        ->where('date', $request->date)
+                        ->first();
+
+                    // If no schedule exists, provide an option to create attendance anyway
+                    // This makes the system more flexible for impromptu attendance taking
+                    if (!$schedule) {
+                        // To handle the foreign key constraint, we need to ensure there's at least one subject
+                        $firstSubject = \App\Models\Subject::first();
+
+                        if (!$firstSubject) {
+                            // If no subjects exist, create a default subject to allow attendance recording
+                            $firstSubject = \App\Models\Subject::create([
+                                'name' => 'General',
+                                'code' => 'GEN',
+                                'description' => 'Default subject for attendance tracking'
+                            ]);
+                        }
+
+                        $schedule = Schedule::create([
+                            'class_model_id' => $classId,
+                            'subject_id' => $firstSubject->id, // Use first subject
+                            'date' => $request->date,
+                            'start_time' => Carbon::parse($request->date . ' 08:00'), // Default to 8 AM
+                            'end_time' => Carbon::parse($request->date . ' 17:00'),   // Default to 5 PM
+                            'status' => 'active'
+                        ]);
+                    }
+
+                    // Check if attendance already exists
+                    $existingAttendance = Attendance::where('user_id', $user->id)
+                        ->where('schedule_id', $schedule->id)
+                        ->first();
+
+                    if ($existingAttendance) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Attendance already recorded for this student in this session'
+                        ]);
+                    }
+
+                    // For better UX, we'll still auto-create attendance if on time, but provide option to change status
+                    $defaultStatus = now()->gt($schedule->start_time->copy()->addMinutes(15)) ? 'late' : 'present';
+
+                    // Create attendance record with default status
+                    $attendance = Attendance::create([
+                        'user_id' => $user->id,
+                        'schedule_id' => $schedule->id,
+                        'check_in_time' => now(),
+                        'status' => $defaultStatus
+                    ]);
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Attendance recorded successfully',
+                        'attendance' => $attendance,
+                        'student' => [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'email' => $user->email,
+                            'role' => $user->role,
+                            'class' => $user->class?->name
+                        ],
+                        'requires_status_selection' => true,  // Still allow status change if needed
+                        'current_status' => $defaultStatus,
+                        'show_status_modal' => true  // Indicate that the status modal can be shown to change status
                     ]);
                 }
-
-                // For better UX, we'll still auto-create attendance if on time, but provide option to change status
-                $defaultStatus = now()->gt($schedule->start_time->copy()->addMinutes(15)) ? 'late' : 'present';
-
-                // Create attendance record with default status
-                $attendance = Attendance::create([
-                    'user_id' => $student->id,
-                    'schedule_id' => $schedule->id,
-                    'check_in_time' => now(),
-                    'status' => $defaultStatus
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Attendance recorded successfully',
-                    'attendance' => $attendance,
-                    'student' => [
-                        'id' => $student->id,
-                        'name' => $student->name,
-                        'email' => $student->email,
-                        'role' => $student->role,
-                        'class' => $student->class?->name
-                    ],
-                    'requires_status_selection' => true,  // Still allow status change if needed
-                    'current_status' => $defaultStatus,
-                    'show_status_modal' => true  // Indicate that the status modal can be shown to change status
-                ]);
             } else {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid QR code type. Please scan a student QR code.'
+                    'message' => 'Invalid QR code type. Please scan a valid user, admin, or superadmin QR code.'
                 ]);
             }
         } catch (\Exception $e) {
@@ -205,82 +288,159 @@ class AttendanceController extends Controller
             // Decode QR data to get user information
             $decodedData = $this->qrCodeService->decodeQRData($request->qr_data);
 
-            if (!in_array($decodedData['type'], ['user', 'student', 'User', 'Student'])) {
+            if (!in_array(strtolower($decodedData['type']), ['user', 'student', 'admin', 'superadmin'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid QR code type. Please scan a student QR code.'
+                    'message' => 'Invalid QR code type. Please scan a valid user, admin, or superadmin QR code.'
                 ]);
             }
 
-            $student = User::with('class')->findOrFail($decodedData['id']);
-            $classId = $decodedData['class_id'] ?? $student->class_id;
+            $user = User::with('class')->findOrFail($decodedData['id']);
 
-            if (!$classId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Student does not have an assigned class. Please assign a class to the student first.'
-                ]);
-            }
-
-            // Check if schedule exists, if not create one
-            $schedule = Schedule::where('class_model_id', $classId)
-                ->where('date', $request->date)
-                ->first();
-
-            if (!$schedule) {
-                // Create a temporary schedule for the purpose of recording attendance
+            // Handle different user types - for admin/superadmin, we might not have class_id in the QR
+            if (in_array($user->role, ['admin', 'superadmin'])) {
+                // For admin/superadmin, create attendance record without requiring specific class from QR
+                $firstClass = \App\Models\ClassModel::first();
                 $firstSubject = \App\Models\Subject::first();
 
-                if (!$firstSubject) {
+                if (!$firstClass) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'No subjects found in the system. Please create at least one subject in the system before scanning attendance.',
-                        'suggested_action' => 'Add a new subject in the system settings first.'
+                        'message' => 'No classes found in the system. Please create at least one class first.'
                     ]);
                 }
 
-                $schedule = Schedule::create([
+                if (!$firstSubject) {
+                    // If no subjects exist, create a default subject to allow attendance recording
+                    $firstSubject = \App\Models\Subject::create([
+                        'name' => 'General',
+                        'code' => 'GEN',
+                        'description' => 'Default subject for attendance tracking'
+                    ]);
+                }
+
+                $classId = $user->class_id ?: $firstClass->id; // Use assigned class or first available class
+                $subjectId = $firstSubject->id; // Use first available subject
+
+                // Check if schedule exists, if not create one
+                $schedule = Schedule::firstOrCreate([
                     'class_model_id' => $classId,
-                    'subject_id' => $firstSubject->id, // Use first subject
                     'date' => $request->date,
-                    'start_time' => Carbon::parse($request->date . ' 08:00'), // Default to 8 AM
-                    'end_time' => Carbon::parse($request->date . ' 17:00'),   // Default to 5 PM
+                    'subject_id' => $subjectId,
+                    'start_time' => Carbon::parse($request->date . ' 00:00:00'),
+                    'end_time' => Carbon::parse($request->date . ' 23:59:59'),
+                ], [
                     'status' => 'active'
                 ]);
-            }
 
-            // Check if attendance already exists
-            $existingAttendance = Attendance::where('user_id', $student->id)
-                ->where('schedule_id', $schedule->id)
-                ->first();
+                // Check if attendance already exists
+                $existingAttendance = Attendance::where('user_id', $user->id)
+                    ->where('schedule_id', $schedule->id)
+                    ->first();
 
-            if ($existingAttendance) {
+                if ($existingAttendance) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Attendance already recorded for this admin in this session'
+                    ]);
+                }
+
+                $attendance = Attendance::create([
+                    'user_id' => $user->id,
+                    'schedule_id' => $schedule->id,
+                    'check_in_time' => now(),
+                    'status' => $request->status,
+                    'notes' => $request->notes
+                ]);
+
+                // Load relationships for the response to ensure all data is available
+                $attendance->load(['user', 'schedule.classModel', 'schedule.subject']);
+
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Attendance already recorded for this student in this session'
+                    'success' => true,
+                    'message' => 'Admin attendance recorded successfully',
+                    'attendance' => $attendance,
+                    'admin' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role,
+                        'class' => $user->class?->name
+                    ]
+                ]);
+
+            } else {
+                // Handle regular student/user
+                $classId = $decodedData['class_id'] ?? $user->class_id;
+
+                if (!$classId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Student does not have an assigned class. Please assign a class to the student first.'
+                    ]);
+                }
+
+                // Check if schedule exists, if not create one
+                $schedule = Schedule::where('class_model_id', $classId)
+                    ->where('date', $request->date)
+                    ->first();
+
+                if (!$schedule) {
+                    // Create a temporary schedule for the purpose of recording attendance
+                    $firstSubject = \App\Models\Subject::first();
+
+                    if (!$firstSubject) {
+                        // If no subjects exist, create a default subject to allow attendance recording
+                        $firstSubject = \App\Models\Subject::create([
+                            'name' => 'General',
+                            'code' => 'GEN',
+                            'description' => 'Default subject for attendance tracking'
+                        ]);
+                    }
+
+                    $schedule = Schedule::create([
+                        'class_model_id' => $classId,
+                        'subject_id' => $firstSubject->id, // Use first subject
+                        'date' => $request->date,
+                        'start_time' => Carbon::parse($request->date . ' 08:00'), // Default to 8 AM
+                        'end_time' => Carbon::parse($request->date . ' 17:00'),   // Default to 5 PM
+                        'status' => 'active'
+                    ]);
+                }
+
+                // Check if attendance already exists
+                $existingAttendance = Attendance::where('user_id', $user->id)
+                    ->where('schedule_id', $schedule->id)
+                    ->first();
+
+                if ($existingAttendance) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Attendance already recorded for this student in this session'
+                    ]);
+                }
+
+                $attendance = Attendance::create([
+                    'user_id' => $user->id,
+                    'schedule_id' => $schedule->id,
+                    'check_in_time' => now(),
+                    'status' => $request->status,
+                    'notes' => $request->notes
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Attendance recorded successfully',
+                    'attendance' => $attendance,
+                    'student' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role,
+                        'class' => $user->class?->name
+                    ]
                 ]);
             }
-
-            $attendance = Attendance::create([
-                'user_id' => $student->id,
-                'schedule_id' => $schedule->id,
-                'check_in_time' => now(),
-                'status' => $request->status,
-                'notes' => $request->notes
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Attendance recorded successfully',
-                'attendance' => $attendance,
-                'student' => [
-                    'id' => $student->id,
-                    'name' => $student->name,
-                    'email' => $student->email,
-                    'role' => $student->role,
-                    'class' => $student->class?->name
-                ]
-            ]);
         } else {
             // Handle traditional user_id and schedule_id input
             $request->validate([
@@ -516,5 +676,103 @@ class AttendanceController extends Controller
             ->get();
 
         return view('attendance.user-attendance', compact('user', 'attendances'));
+    }
+
+    /**
+     * Update the status of an attendance record
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $user = Auth::user();
+
+        // Only superadmin can update attendance status
+        if (!$user || !$user->isSuperAdmin()) {
+            abort(403, 'Unauthorized access. Only superadmin can update attendance status.');
+        }
+
+        $request->validate([
+            'status' => 'required|in:present,late,absent,excused,sick',
+            'notes' => 'nullable|string|max:255'
+        ]);
+
+        $attendance = Attendance::findOrFail($id);
+
+        $attendance->update([
+            'status' => $request->status,
+            'notes' => $request->notes ?? $attendance->notes
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Attendance status updated successfully',
+            'attendance' => $attendance->fresh()->load(['user', 'schedule.classModel', 'schedule.subject'])
+        ]);
+    }
+
+    /**
+     * Delete an attendance record
+     */
+    public function destroy($id)
+    {
+        $user = Auth::user();
+
+        // Only superadmin can delete attendance records
+        if (!$user || !$user->isSuperAdmin()) {
+            abort(403, 'Unauthorized access. Only superadmin can delete attendance records.');
+        }
+
+        $attendance = Attendance::findOrFail($id);
+        $attendance->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Attendance record deleted successfully'
+        ]);
+    }
+
+    /**
+     * Show cache management page
+     */
+    public function showCacheManagement()
+    {
+        $user = Auth::user();
+
+        // Only superadmin can access cache management
+        if (!$user || !$user->isSuperAdmin()) {
+            abort(403, 'Unauthorized access. Only superadmin can access cache management.');
+        }
+
+        return view('cache-management');
+    }
+
+    /**
+     * Clear application cache
+     */
+    public function clearCache()
+    {
+        $user = Auth::user();
+
+        // Only superadmin can clear cache
+        if (!$user || !$user->isSuperAdmin()) {
+            abort(403, 'Unauthorized access. Only superadmin can clear cache.');
+        }
+
+        try {
+            // Clear various caches
+            \Artisan::call('cache:clear');
+            \Artisan::call('config:clear');
+            \Artisan::call('route:clear');
+            \Artisan::call('view:clear');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cache cleared successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error clearing cache: ' . $e->getMessage()
+            ]);
+        }
     }
 }
