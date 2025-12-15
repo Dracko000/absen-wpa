@@ -684,6 +684,7 @@ class ComposerStaticInit9c491b8531eec05ba41a11d9276a5749
         'App\\Http\\Middleware\\TrustProxies' => __DIR__ . '/../..' . '/app/Http/Middleware/TrustProxies.php',
         'App\\Http\\Middleware\\ValidateSignature' => __DIR__ . '/../..' . '/app/Http/Middleware/ValidateSignature.php',
         'App\\Http\\Middleware\\VerifyCsrfToken' => __DIR__ . '/../..' . '/app/Http/Middleware/VerifyCsrfToken.php',
+        'App\\Imports\\AttendanceImport' => __DIR__ . '/../..' . '/app/Imports/AttendanceImport.php',
         'App\\Livewire\\AdminDashboard' => __DIR__ . '/../..' . '/app/Livewire/AdminDashboard.php',
         'App\\Livewire\\ShowUserQr' => __DIR__ . '/../..' . '/app/Livewire/ShowUserQr.php',
         'App\\Livewire\\StudentDashboard' => __DIR__ . '/../..' . '/app/Livewire/StudentDashboard.php',

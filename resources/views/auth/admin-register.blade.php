@@ -6,7 +6,7 @@
 
         <div class="mb-4 text-center">
             <h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">
-                {{ isset($default_role) ? ((($default_role === 'admin') ? 'Guru' : ucfirst(str_replace('_', ' ', $default_role))) . ' Registration') : 'Admin Registration' }}
+                {{ isset($default_role) ? (($default_role === 'admin' ? 'Guru' : ucfirst(str_replace('_', ' ', $default_role))) . ' Registration') : 'Admin Registration' }}
             </h2>
         </div>
 

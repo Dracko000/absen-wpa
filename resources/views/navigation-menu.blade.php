@@ -25,9 +25,11 @@
 
                         @auth
                             @if(auth()->user()->isSuperAdmin())
+                                @can('view', App\Models\User::class)
                                 <x-nav-link href="{{ route('users.index') }}" :active="request()->routeIs('users.index')">
                                     {{ __('Users') }}
                                 </x-nav-link>
+                                @endcan
                                 <x-nav-link href="{{ route('admin.qr.show') }}" :active="request()->routeIs('admin.qr.show')">
                                     {{ __('Scan Admin QR') }}
                                 </x-nav-link>
@@ -214,9 +216,11 @@
 
             @auth
                 @if(auth()->user()->isSuperAdmin())
+                    @can('view', App\Models\User::class)
                     <x-responsive-nav-link href="{{ route('users.index') }}" :active="request()->routeIs('users.index')">
                         {{ __('Users') }}
                     </x-responsive-nav-link>
+                    @endcan
                     <x-responsive-nav-link href="{{ route('admin.qr.show') }}" :active="request()->routeIs('admin.qr.show')">
                         {{ __('Scan Admin QR') }}
                     </x-responsive-nav-link>

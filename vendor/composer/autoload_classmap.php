@@ -43,6 +43,7 @@ return array(
     'App\\Http\\Middleware\\TrustProxies' => $baseDir . '/app/Http/Middleware/TrustProxies.php',
     'App\\Http\\Middleware\\ValidateSignature' => $baseDir . '/app/Http/Middleware/ValidateSignature.php',
     'App\\Http\\Middleware\\VerifyCsrfToken' => $baseDir . '/app/Http/Middleware/VerifyCsrfToken.php',
+    'App\\Imports\\AttendanceImport' => $baseDir . '/app/Imports/AttendanceImport.php',
     'App\\Livewire\\AdminDashboard' => $baseDir . '/app/Livewire/AdminDashboard.php',
     'App\\Livewire\\ShowUserQr' => $baseDir . '/app/Livewire/ShowUserQr.php',
     'App\\Livewire\\StudentDashboard' => $baseDir . '/app/Livewire/StudentDashboard.php',
