@@ -15,8 +15,11 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->foreignId('teacher_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('teacher_id');
             $table->timestamps();
+
+            // Add foreign key constraint to users table (not teachers table)
+            $table->foreign('teacher_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 

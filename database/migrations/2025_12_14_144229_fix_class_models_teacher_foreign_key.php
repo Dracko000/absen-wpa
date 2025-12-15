@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        //
+        // This migration is no longer needed as the original migration has been corrected.
     }
 
     /**
@@ -19,6 +19,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
+        // Nothing to rollback.
     }
 };
