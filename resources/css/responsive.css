@@ -1,0 +1,75 @@
+/* Responsive Design Improvements */
+
+/* Adjust video element for smaller screens */
+#video {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Improve responsive behavior for dashboard cards */
+@media (max-width: 640px) {
+    .welcome-banner-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .welcome-banner-content > div:last-child {
+        margin-top: 1rem;
+        margin-left: 0;
+    }
+}
+
+/* Adjust table for mobile */
+@media (max-width: 640px) {
+    .attendance-table th,
+    .attendance-table td {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.75rem;
+    }
+    
+    .attendance-table {
+        font-size: 0.75rem;
+    }
+}
+
+/* Responsive modal adjustments */
+@media (max-width: 640px) {
+    #statusModal .modal-content {
+        width: 95%;
+        margin: 1rem;
+        padding: 1rem;
+    }
+    
+    #statusModal .grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+}
+
+/* Improve QR scanner layout on mobile */
+@media (max-width: 768px) {
+    .qr-scan-container {
+        padding: 1rem;
+    }
+    
+    .qr-scan-buttons .button {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Responsive navigation adjustments */
+@media (max-width: 640px) {
+    .nav-links-container {
+        display: none;
+    }
+    
+    .user-controls {
+        display: none;
+    }
+}
+
+/* Responsive padding adjustments */
+.sm-padding-adjust {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}

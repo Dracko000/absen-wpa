@@ -1,0 +1,394 @@
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('Attendance Scanner') }}
+        </h2>
+    </x-slot>
+
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
+                <!-- Instructions -->
+                <div class="mb-6 p-4 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-md">
+                    <h3 class="text-lg font-medium text-blue-800 dark:text-blue-200 mb-2">Attendance Scanner Instructions</h3>
+                    <ul class="list-disc pl-5 text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                        <li>Select the class and date for attendance</li>
+                        <li>Have students present their QR code for scanning</li>
+                        <li>Use camera scanner or enter QR code manually</li>
+                        <li>Attendance will be recorded automatically</li>
+                    </ul>
+                </div>
+
+                <div class="mb-6">
+                    <label for="classSelect" class="block text-sm font-medium text-gray-700">Select Class</label>
+                    <select id="classSelect" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <option value="">Choose a class</option>
+                        @foreach($classes as $class)
+                            <option value="{{ $class->id }}">{{ $class->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="mb-6">
+                    <label for="dateInput" class="block text-sm font-medium text-gray-700">Select Date</label>
+                    <input type="date" id="dateInput" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="{{ date('Y-m-d') }}">
+                </div>
+
+                <div class="mb-6">
+                    <button id="startScannerBtn" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4">
+                        Scan Student QR Code
+                    </button>
+                    <button id="uploadQRBtn" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-4">
+                        Upload QR from Device
+                    </button>
+                    <button id="manualInputBtn" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                        Manual QR Input
+                    </button>
+                </div>
+
+                <div class="mb-6" id="uploadContainer" style="display:none;">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Upload QR Code Image</h3>
+                    <div class="flex items-center space-x-4">
+                        <input type="file" id="qrImageUpload" accept="image/*" class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <button id="processUploadBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md">
+                            Process
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-6" id="scannerContainer" style="display:none;">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Camera Scanner</h3>
+                    <div class="flex flex-col items-center">
+                        <video id="video" width="300" height="200" style="border: 1px solid #ccc;"></video>
+                        <canvas id="canvas" style="display: none;"></canvas>
+                        <button id="captureBtn" class="mt-2 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded" style="display: none;">Capture</button>
+                        <p id="scannerStatus" class="mt-2 text-sm text-gray-600">Point camera at QR code</p>
+                    </div>
+                </div>
+
+                <div class="mb-6" id="manualInputContainer" style="display:none;">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Manual QR Code Input</h3>
+                    <div class="flex">
+                        <input type="text" id="qrInput" placeholder="Enter QR code data" class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <button id="submitQRBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-r-md">
+                            Process
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-6" id="resultContainer" style="display:none;">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Scan Result</h3>
+                    <div id="result" class="bg-gray-100 p-4 rounded-md"></div>
+                </div>
+
+                <div id="attendanceTable" style="display:none;">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Today's Attendance</h3>
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in Time</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="attendanceTableBody">
+                            <!-- Attendance records will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include jsQR for QR code scanning -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const classSelect = document.getElementById('classSelect');
+            const dateInput = document.getElementById('dateInput');
+            const startScannerBtn = document.getElementById('startScannerBtn');
+            const uploadQRBtn = document.getElementById('uploadQRBtn');
+            const manualInputBtn = document.getElementById('manualInputBtn');
+            const scannerContainer = document.getElementById('scannerContainer');
+            const uploadContainer = document.getElementById('uploadContainer');
+            const manualInputContainer = document.getElementById('manualInputContainer');
+            const captureBtn = document.getElementById('captureBtn');
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const qrImageUpload = document.getElementById('qrImageUpload');
+            const processUploadBtn = document.getElementById('processUploadBtn');
+            const qrInput = document.getElementById('qrInput');
+            const submitQRBtn = document.getElementById('submitQRBtn');
+            const resultContainer = document.getElementById('resultContainer');
+            const resultDiv = document.getElementById('result');
+            const attendanceTable = document.getElementById('attendanceTable');
+            const attendanceTableBody = document.getElementById('attendanceTableBody');
+            const scannerStatus = document.getElementById('scannerStatus');
+
+            // When class or date changes, fetch attendance
+            classSelect.addEventListener('change', fetchAttendance);
+            dateInput.addEventListener('change', fetchAttendance);
+
+            // Show upload form
+            uploadQRBtn.addEventListener('click', function() {
+                if (!classSelect.value || !dateInput.value) {
+                    alert('Please select both class and date first');
+                    return;
+                }
+
+                scannerContainer.style.display = 'none';
+                manualInputContainer.style.display = 'none';
+                uploadContainer.style.display = 'block';
+            });
+
+            // Process uploaded QR image
+            processUploadBtn.addEventListener('click', function() {
+                const file = qrImageUpload.files[0];
+                if (!file) {
+                    resultDiv.innerHTML = '<p class="text-red-600">Please select a QR code image file</p>';
+                    resultContainer.style.display = 'block';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        // Create a canvas to draw the image and scan for QR codes
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                        if (code) {
+                            resultDiv.innerHTML = '<p>Scanned from image: ' + code.data + '</p>';
+                            resultContainer.style.display = 'block';
+                            processScan(code.data);
+                        } else {
+                            resultDiv.innerHTML = '<p class="text-red-600">No QR code detected in the uploaded image. Please try another image.</p>';
+                            resultContainer.style.display = 'block';
+                        }
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        document.addEventListener('DOMContentLoaded', function() {
+            const classSelect = document.getElementById('classSelect');
+            const dateInput = document.getElementById('dateInput');
+            const startScannerBtn = document.getElementById('startScannerBtn');
+            const manualInputBtn = document.getElementById('manualInputBtn');
+            const scannerContainer = document.getElementById('scannerContainer');
+            const manualInputContainer = document.getElementById('manualInputContainer');
+            const captureBtn = document.getElementById('captureBtn');
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const qrInput = document.getElementById('qrInput');
+            const submitQRBtn = document.getElementById('submitQRBtn');
+            const resultContainer = document.getElementById('resultContainer');
+            const resultDiv = document.getElementById('result');
+            const attendanceTable = document.getElementById('attendanceTable');
+            const attendanceTableBody = document.getElementById('attendanceTableBody');
+            const scannerStatus = document.getElementById('scannerStatus');
+
+            // When class or date changes, fetch attendance
+            classSelect.addEventListener('change', fetchAttendance);
+            dateInput.addEventListener('change', fetchAttendance);
+
+            // Show manual input form
+            manualInputBtn.addEventListener('click', function() {
+                if (!classSelect.value || !dateInput.value) {
+                    alert('Please select both class and date first');
+                    return;
+                }
+
+                manualInputContainer.style.display = 'block';
+                scannerContainer.style.display = 'none';
+            });
+
+            // Initialize camera scanner
+            startScannerBtn.addEventListener('click', function() {
+                if (!classSelect.value || !dateInput.value) {
+                    alert('Please select both class and date first');
+                    return;
+                }
+
+                manualInputContainer.style.display = 'none';
+                scannerContainer.style.display = 'block';
+                initCameraScanner();
+            });
+
+            // Submit manually entered QR code
+            submitQRBtn.addEventListener('click', function() {
+                const qrData = qrInput.value.trim();
+                if (!qrData) {
+                    resultDiv.innerHTML = '<p class="text-red-600">Please enter QR code data</p>';
+                    resultContainer.style.display = 'block';
+                    return;
+                }
+
+                processScan(qrData);
+            });
+
+            // Process QR code when captured
+            captureBtn.addEventListener('click', function() {
+                const context = canvas.getContext('2d');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                if (code) {
+                    resultDiv.innerHTML = '<p>Scanned: ' + code.data + '</p>';
+                    resultContainer.style.display = 'block';
+                    processScan(code.data);
+                } else {
+                    resultDiv.innerHTML = '<p class="text-red-600">No QR code detected. Please try again.</p>';
+                    resultContainer.style.display = 'block';
+                }
+            });
+
+            function initCameraScanner() {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                        .then(function(stream) {
+                            video.srcObject = stream;
+                            video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
+                            video.play();
+                            scannerStatus.textContent = 'Camera active - Point at QR code';
+
+                            // Start QR code detection
+                            requestAnimationFrame(tick);
+                        })
+                        .catch(function(err) {
+                            console.error("Error accessing camera: ", err);
+                            resultDiv.innerHTML = '<p class="text-red-600">Error accessing camera: ' + err.message + '</p>';
+                            resultContainer.style.display = 'block';
+                        });
+                } else {
+                    resultDiv.innerHTML = '<p class="text-red-600">Camera not supported in this browser</p>';
+                    resultContainer.style.display = 'block';
+                }
+            }
+
+            function tick() {
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    const context = canvas.getContext('2d');
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                    if (code) {
+                        // Highlight the QR code area
+                        context.lineWidth = 2;
+                        context.strokeStyle = "#00FF00";
+                        context.strokeRect(code.location.topLeftCorner.x, code.location.topLeftCorner.y,
+                            code.location.topRightCorner.x - code.location.topLeftCorner.x,
+                            code.location.bottomRightCorner.y - code.location.topLeftCorner.y);
+
+                        // Display captured code
+                        resultDiv.innerHTML = '<p>Scanned: ' + code.data + '</p>';
+                        resultContainer.style.display = 'block';
+                        captureBtn.style.display = 'block';
+
+                        // Process the QR code immediately
+                        processScan(code.data);
+                    } else {
+                        captureBtn.style.display = 'none';
+                    }
+                }
+                requestAnimationFrame(tick);
+            }
+
+            function processScan(qrData) {
+                fetch('/attendance/process-scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        qr_data: qrData,
+                        class_id: classSelect.value,
+                        date: dateInput.value
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        resultDiv.innerHTML += '<p class="text-green-600">' + data.message + '</p>';
+                        if (data.student) {
+                            resultDiv.innerHTML += '<p class="text-blue-600">Student: ' + data.student.name + ' (' + data.student.email + ')</p>';
+                        }
+                        // Refresh attendance list
+                        fetchAttendance();
+                    } else {
+                        resultDiv.innerHTML += '<p class="text-red-600">Error: ' + data.message + '</p>';
+                    }
+                })
+                .catch(error => {
+                    resultDiv.innerHTML += '<p class="text-red-600">Error: ' + error.message + '</p>';
+                });
+            }
+
+            function fetchAttendance() {
+                if (!classSelect.value || !dateInput.value) {
+                    return;
+                }
+
+                fetch('/attendance/get', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        class_id: classSelect.value,
+                        date: dateInput.value
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.attendances && data.attendances.length > 0) {
+                        attendanceTable.style.display = 'block';
+                        attendanceTableBody.innerHTML = '';
+
+                        data.attendances.forEach(attendance => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${attendance.user.name}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${attendance.check_in_time ? new Date(attendance.check_in_time).toLocaleTimeString() : 'N/A'}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                        ${attendance.status === 'present' ? 'bg-green-100 text-green-800' :
+                                          attendance.status === 'late' ? 'bg-yellow-100 text-yellow-800' :
+                                          attendance.status === 'absent' ? 'bg-red-100 text-red-800' :
+                                          'bg-blue-100 text-blue-800'}">
+                                        ${attendance.status}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${attendance.notes || ''}</td>
+                            `;
+                            attendanceTableBody.appendChild(row);
+                        });
+                    } else {
+                        attendanceTable.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+        });
+    </script>
+</x-app-layout>
