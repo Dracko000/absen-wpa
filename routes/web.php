@@ -90,3 +90,6 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function () {
         }
     })->name('dashboard');
 });
+
+// Health check routes
+include_once __DIR__.'/health.php';
