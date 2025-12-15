@@ -23,31 +23,33 @@
                             {{ __('Dashboard') }}
                         </x-nav-link>
 
-                        @if(auth()->user()->isSuperAdmin())
-                            <x-nav-link href="{{ route('users.index') }}" :active="request()->routeIs('users.index')">
-                                {{ __('Users') }}
-                            </x-nav-link>
-                            <x-nav-link href="{{ route('admin.qr.show') }}" :active="request()->routeIs('admin.qr.show')">
-                                {{ __('Scan Admin QR') }}
-                            </x-nav-link>
-                            <x-nav-link href="{{ route('reports') }}" :active="request()->routeIs('reports')">
-                                {{ __('Reports') }}
-                            </x-nav-link>
-                        @elseif(auth()->user()->isAdmin())
-                            <x-nav-link href="{{ route('classes.index') }}" :active="request()->routeIs('classes.index')">
-                                {{ __('Classes') }}
-                            </x-nav-link>
-                            <x-nav-link href="{{ route('schedules.index') }}" :active="request()->routeIs('schedules.index')">
-                                {{ __('Schedules') }}
-                            </x-nav-link>
-                            <x-nav-link href="{{ route('attendance.index') }}" :active="request()->routeIs('attendance.index')">
-                                {{ __('Attendance') }}
-                            </x-nav-link>
-                        @else
-                            <x-nav-link href="{{ route('attendance.history') }}" :active="request()->routeIs('attendance.history')">
-                                {{ __('History') }}
-                            </x-nav-link>
-                        @endif
+                        @auth
+                            @if(auth()->user()->isSuperAdmin())
+                                <x-nav-link href="{{ route('users.index') }}" :active="request()->routeIs('users.index')">
+                                    {{ __('Users') }}
+                                </x-nav-link>
+                                <x-nav-link href="{{ route('admin.qr.show') }}" :active="request()->routeIs('admin.qr.show')">
+                                    {{ __('Scan Admin QR') }}
+                                </x-nav-link>
+                                <x-nav-link href="{{ route('reports') }}" :active="request()->routeIs('reports')">
+                                    {{ __('Reports') }}
+                                </x-nav-link>
+                            @elseif(auth()->user()->isAdmin())
+                                <x-nav-link href="{{ route('classes.index') }}" :active="request()->routeIs('classes.index')">
+                                    {{ __('Classes') }}
+                                </x-nav-link>
+                                <x-nav-link href="{{ route('schedules.index') }}" :active="request()->routeIs('schedules.index')">
+                                    {{ __('Schedules') }}
+                                </x-nav-link>
+                                <x-nav-link href="{{ route('attendance.index') }}" :active="request()->routeIs('attendance.index')">
+                                    {{ __('Attendance') }}
+                                </x-nav-link>
+                            @else
+                                <x-nav-link href="{{ route('attendance.history') }}" :active="request()->routeIs('attendance.history')">
+                                    {{ __('History') }}
+                                </x-nav-link>
+                            @endif
+                        @endauth
                     </div>
                 </div>
             </div>
@@ -199,31 +201,33 @@
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
 
-            @if(auth()->user()->isSuperAdmin())
-                <x-responsive-nav-link href="{{ route('users.index') }}" :active="request()->routeIs('users.index')">
-                    {{ __('Users') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link href="{{ route('admin.qr.show') }}" :active="request()->routeIs('admin.qr.show')">
-                    {{ __('Scan Admin QR') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link href="{{ route('reports') }}" :active="request()->routeIs('reports')">
-                    {{ __('Reports') }}
-                </x-responsive-nav-link>
-            @elseif(auth()->user()->isAdmin())
-                <x-responsive-nav-link href="{{ route('classes.index') }}" :active="request()->routeIs('classes.index')">
-                    {{ __('Classes') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link href="{{ route('schedules.index') }}" :active="request()->routeIs('schedules.index')">
-                    {{ __('Schedules') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link href="{{ route('attendance.index') }}" :active="request()->routeIs('attendance.index')">
-                    {{ __('Attendance') }}
-                </x-responsive-nav-link>
-            @else
-                <x-responsive-nav-link href="{{ route('attendance.history') }}" :active="request()->routeIs('attendance.history')">
-                    {{ __('History') }}
-                </x-responsive-nav-link>
-            @endif
+            @auth
+                @if(auth()->user()->isSuperAdmin())
+                    <x-responsive-nav-link href="{{ route('users.index') }}" :active="request()->routeIs('users.index')">
+                        {{ __('Users') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link href="{{ route('admin.qr.show') }}" :active="request()->routeIs('admin.qr.show')">
+                        {{ __('Scan Admin QR') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link href="{{ route('reports') }}" :active="request()->routeIs('reports')">
+                        {{ __('Reports') }}
+                    </x-responsive-nav-link>
+                @elseif(auth()->user()->isAdmin())
+                    <x-responsive-nav-link href="{{ route('classes.index') }}" :active="request()->routeIs('classes.index')">
+                        {{ __('Classes') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link href="{{ route('schedules.index') }}" :active="request()->routeIs('schedules.index')">
+                        {{ __('Schedules') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link href="{{ route('attendance.index') }}" :active="request()->routeIs('attendance.index')">
+                        {{ __('Attendance') }}
+                    </x-responsive-nav-link>
+                @else
+                    <x-responsive-nav-link href="{{ route('attendance.history') }}" :active="request()->routeIs('attendance.history')">
+                        {{ __('History') }}
+                    </x-responsive-nav-link>
+                @endif
+            @endauth
         </div>
 
         <!-- Responsive Settings Options -->

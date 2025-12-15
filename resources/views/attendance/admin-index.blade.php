@@ -58,9 +58,9 @@
                                         </td>
                                         <td class="px-3 py-3 text-sm sm:px-6 sm:py-4 whitespace-nowrap">
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                {{ $attendance->status === 'present' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' :
-                                                   ($attendance->status === 'late' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' :
-                                                   ($attendance->status === 'absent' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200' :
+                                                {{ ($attendance->status === 'present') ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' :
+                                                   (($attendance->status === 'late') ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' :
+                                                   (($attendance->status === 'absent') ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200' :
                                                    'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200')) }}">
                                                 {{ ucfirst($attendance->status) }}
                                             </span>
