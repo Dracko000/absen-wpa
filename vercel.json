@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "regions": ["sin1"],
+  "functions": {
+    "api/index.php": {
+      "runtime": "vercel-php@0.6.0",
+      "maxDuration": 10
+    }
+  },
+  "routes": [
+    {
+      "src": "/^(.*)\\.(js|css|svg|png|jpg|jpeg|gif|ico|webp|ttf|woff|woff2)$",
+      "dest": "/public/$1",
+      "continue": true
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.php"
+    }
+  ],
+  "builds": [
+    {
+      "src": "api/index.php",
+      "use": "@vercel/php"
+    }
+  ],
+  "env": {
+    "APP_ENV": "production",
+    "APP_DEBUG": "false",
+    "DB_CONNECTION": "pgsql",
+    "SESSION_DRIVER": "cookie",
+    "CACHE_DRIVER": "array",
+    "QUEUE_CONNECTION": "sync"
+  }
+}
