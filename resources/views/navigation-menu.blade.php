@@ -37,9 +37,11 @@
                                 <x-nav-link href="{{ route('reports.import') }}" :active="request()->routeIs('reports.import')">
                                     {{ __('Import') }}
                                 </x-nav-link>
+                                @if(auth()->user()->hasRole('super_admin'))
                                 <x-nav-link href="{{ route('cache-management') }}" :active="request()->routeIs('cache-management')">
                                     {{ __('Cache') }}
                                 </x-nav-link>
+                                @endif
                             @elseif(auth()->user()->isAdmin())
                                 <x-nav-link href="{{ route('classes.index') }}" :active="request()->routeIs('classes.index')">
                                     {{ __('Classes') }}
@@ -224,9 +226,11 @@
                     <x-responsive-nav-link href="{{ route('reports.import') }}" :active="request()->routeIs('reports.import')">
                         {{ __('Import') }}
                     </x-responsive-nav-link>
+                    @if(auth()->user()->hasRole('super_admin'))
                     <x-responsive-nav-link href="{{ route('cache-management') }}" :active="request()->routeIs('cache-management')">
                         {{ __('Cache') }}
                     </x-responsive-nav-link>
+                    @endif
                 @elseif(auth()->user()->isAdmin())
                     <x-responsive-nav-link href="{{ route('classes.index') }}" :active="request()->routeIs('classes.index')">
                         {{ __('Classes') }}
